@@ -1,3 +1,56 @@
+import { CONFIG_OPTIONS } from './jwt.constants';
+import { Test } from '@nestjs/testing';
+import * as jwt from 'jsonwebtoken';
+import { JwtService } from './jwt.service';
+
+const USER_ID = 1;
+const TEST_KEY = 'test-key';
+
+jest.mock('jsonwebtoken', () => {
+  return {
+    sign: jest.fn(() => 'TOKEN'),
+    verify: jest.fn(() => {
+      return {
+        id: USER_ID,
+      };
+    }),
+  };
+});
+
 describe('JwtService', () => {
-  it.todo('Test it all!!');
+  let service: JwtService;
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        JwtService,
+        {
+          provide: CONFIG_OPTIONS,
+          useValue: {
+            privateKey: TEST_KEY,
+          },
+        },
+      ],
+    }).compile();
+    service = module.get<JwtService>(JwtService);
+  });
+  it('toBeDefined', () => {
+    expect(service).toBeDefined();
+  });
+  describe('sign', () => {
+    it('should return signed token', () => {
+      const token = service.sign(USER_ID);
+      expect(typeof token).toBe('string');
+      expect(jwt.sign).toHaveBeenCalledTimes(1);
+      expect(jwt.sign).toHaveBeenCalledWith({ id: USER_ID }, TEST_KEY);
+    });
+  });
+  describe('verify', () => {
+    it('should verify the token', () => {
+      const TOKEN = 'TOKEN';
+      const decoded_token = service.verify(TOKEN);
+      expect(decoded_token).toEqual({ id: USER_ID });
+      expect(jwt.verify).toHaveBeenCalledTimes(1);
+      expect(jwt.verify).toHaveBeenCalledWith(TOKEN, TEST_KEY);
+    });
+  });
 });
